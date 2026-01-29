@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Skill(find-skills)",
+      "Bash(npx skills find:*)",
+      "Bash(npx create-next-app:*)",
+      "Bash(dir:*)",
+      "Bash(npm init:*)",
+      "Bash(npm install:*)",
+      "Bash(npm run dev:*)",
+      "Bash(npx next dev:*)",
+      "Bash(taskkill:*)",
+      "Bash(cmd:*)",
+      "Bash(timeout:*)",
+      "Bash(ping:*)",
+      "Bash(tasklist:*)",
+      "Bash(findstr:*)",
+      "Bash(del:*)"
+    ]
+  }
+}
