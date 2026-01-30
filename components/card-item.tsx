@@ -36,7 +36,7 @@ export function CardItem({ item }: CardItemProps) {
   }, [isOpen, item]);
 
   const getBilibiliEmbedUrl = (bvid: string) => {
-    return `https://player.bilibili.com/player.html?bvid=${bvid}&page=1&high_quality=1&danmaku=1`;
+    return `https://player.bilibili.com/player.html?bvid=${bvid}&page=1&high_quality=1&danmaku=1&autoplay=1`;
   };
 
   const getTypeIcon = (type: string) => {
@@ -68,6 +68,7 @@ export function CardItem({ item }: CardItemProps) {
                 src={getBilibiliEmbedUrl(item.bilibiliId)}
                 className="absolute inset-0 w-full h-full"
                 allowFullScreen
+                allow="autoplay; fullscreen; picture-in-picture"
                 scrolling="no"
                 style={{ border: 0 }}
                 frameBorder="no"
@@ -141,6 +142,7 @@ export function CardItem({ item }: CardItemProps) {
                   src={getBilibiliEmbedUrl(item.bilibiliId)}
                   className="absolute inset-0 w-full h-full"
                   allowFullScreen
+                  allow="autoplay; fullscreen; picture-in-picture"
                   scrolling="no"
                   style={{ border: 0 }}
                   frameBorder="no"
