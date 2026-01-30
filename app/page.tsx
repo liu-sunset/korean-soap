@@ -2,7 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import Link from 'next/link';
+import { Plus } from 'lucide-react';
 import { CardItem } from '@/components/card-item';
+import { Button } from '@/components/ui/button';
 import { CardItem as CardItemType } from '@/lib/types';
 
 export default function HomePage() {
@@ -31,13 +34,21 @@ export default function HomePage() {
     <main className="min-h-screen bg-[#f9fafb]">
       {/* Header */}
       <header className="sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">
-            治愈系韩剧剪辑与台词
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            精选韩剧片段，温暖你的心灵
-          </p>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">
+              治愈系韩剧剪辑与台词
+            </h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              精选韩剧片段，温暖你的心灵
+            </p>
+          </div>
+          <Link href="/admin">
+            <Button variant="outline" size="sm">
+              <Plus className="w-4 h-4 mr-2" />
+              增加片段
+            </Button>
+          </Link>
         </div>
       </header>
 
