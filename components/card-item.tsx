@@ -115,8 +115,8 @@ export function CardItem({ item }: CardItemProps) {
       {/* Detail Dialog */}
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogContent className={`${
-          item.type === 'text' ? 'max-w-6xl' : 'max-w-4xl'
-        } max-h-[90vh] overflow-hidden`}>
+          item.type === 'text' ? 'max-w-6xl h-[85vh]' : 'max-w-4xl max-h-[90vh]'
+        } overflow-hidden flex flex-col`}>
           <DialogHeader>
             <DialogTitle>{item.summary}</DialogTitle>
             <DialogDescription>
@@ -133,7 +133,7 @@ export function CardItem({ item }: CardItemProps) {
           </DialogHeader>
 
           {/* 滚动容器 */}
-          <div className="overflow-y-auto pr-1 max-h-[calc(90vh-8rem)]">
+          <div className="overflow-y-auto pr-1 flex-1">
             {/* Video */}
             {(item.type === 'video' || item.type === 'mixed') && item.bilibiliId && (
               <div className="relative aspect-video bg-muted rounded-2xl overflow-hidden mb-4">
