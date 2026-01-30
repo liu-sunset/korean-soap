@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { type, bilibiliId, summary, content } = body;
+    const { type, bilibiliId, summary, content, htmlContent } = body;
 
     if (!type || !summary) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -32,6 +32,7 @@ export async function POST(request: NextRequest) {
       bilibiliId,
       summary,
       content,
+      htmlContent,
     });
 
     return NextResponse.json(newCard);

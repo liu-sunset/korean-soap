@@ -26,7 +26,12 @@ export function CardItem({ item }: CardItemProps) {
 
   useEffect(() => {
     if (isOpen) {
-      Promise.resolve(marked.parse(item.content || item.summary)).then(setHtmlContent);
+      // 如果有 htmlContent，直接使用；否则解析 Markdown
+      if (item.htmlContent) {
+        setHtmlContent(item.htmlContent);
+      } else {
+        Promise.resolve(marked.parse(item.content || item.summary)).then(setHtmlContent);
+      }
     }
   }, [isOpen, item]);
 
@@ -89,12 +94,10 @@ export function CardItem({ item }: CardItemProps) {
               </span>
             </div>
             <p className="text-sm leading-relaxed text-foreground">
-              {needsExpand
-                ? `${item.content?.slice(0, 100) || item.summary}...`
-                : item.content || item.summary}
+              {item.summary}
             </p>
 
-            {(needsExpand || item.type === 'video' || item.type === 'mixed') && (
+            {(item.type === 'video' || item.type === 'mixed' || item.content || item.htmlContent) && (
               <Button
                 variant="ghost"
                 size="sm"
@@ -147,7 +150,7 @@ export function CardItem({ item }: CardItemProps) {
 
             {/* Full Content */}
             <div
-              className="prose prose-sm max-w-none text-foreground dark:prose-invert pb-4"
+              className={item.htmlContent ? 'text-foreground pb-4' : 'prose prose-sm max-w-none text-foreground dark:prose-invert pb-4'}
               dangerouslySetInnerHTML={{
                 __html: htmlContent
               }}

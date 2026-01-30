@@ -6,5 +6,6 @@ export interface CardItem {
   bilibiliId?: string;
   summary: string;
   content?: string;
+  htmlContent?: string;
   timestamp: number;
 }

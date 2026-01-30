@@ -30,6 +30,7 @@ interface FormData {
   bilibiliId?: string;
   summary: string;
   content?: string;
+  htmlContent?: string;
 }
 
 export default function AdminPage() {
@@ -43,6 +44,7 @@ export default function AdminPage() {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedFileName, setSelectedFileName] = useState<string>('');
+  const [hasHtml, setHasHtml] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const loadCards = async () => {
@@ -72,6 +74,7 @@ export default function AdminPage() {
     setEditingCard(null);
     setFormData({ type: 'text', summary: '' });
     setSelectedFileName('');
+    setHasHtml(false);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -85,7 +88,9 @@ export default function AdminPage() {
       bilibiliId: card.bilibiliId,
       summary: card.summary,
       content: card.content,
+      htmlContent: card.htmlContent,
     });
+    setHasHtml(!!card.htmlContent);
     setSelectedFileName('');
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
@@ -97,16 +102,17 @@ export default function AdminPage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // 检查是否为 .md 文件
-    if (!file.name.endsWith('.md')) {
-      alert('请选择 Markdown (.md) 文件');
+    // 检查是否为 .html 文件
+    if (!file.name.endsWith('.html')) {
+      alert('请选择 HTML (.html) 文件');
       return;
     }
 
     try {
       const text = await file.text();
-      setFormData({ ...formData, content: text });
+      setFormData({ ...formData, htmlContent: text, content: '' });
       setSelectedFileName(file.name);
+      setHasHtml(true);
     } catch (error) {
       console.error('Failed to read file:', error);
       alert('读取文件失败');
@@ -151,6 +157,7 @@ export default function AdminPage() {
         setEditingCard(null);
         setFormData({ type: 'text', summary: '' });
         setSelectedFileName('');
+        setHasHtml(false);
         if (fileInputRef.current) {
           fileInputRef.current.value = '';
         }
@@ -388,10 +395,10 @@ export default function AdminPage() {
                     <input
                       ref={fileInputRef}
                       type="file"
-                      accept=".md"
+                      accept=".html"
                       onChange={handleFileUpload}
                       className="hidden"
-                      id="markdown-file-upload"
+                      id="html-file-upload"
                     />
                     <Button
                       type="button"
@@ -401,7 +408,7 @@ export default function AdminPage() {
                       className="w-full"
                     >
                       <Upload className="h-4 w-4 mr-2" />
-                      上传 Markdown 文件
+                      上传 HTML 文件
                     </Button>
                     {selectedFileName && (
                       <p className="text-xs text-muted-foreground">
@@ -418,10 +425,13 @@ export default function AdminPage() {
                   }
                   placeholder="完整的台词内容（支持 Markdown）"
                   rows={6}
+                  disabled={hasHtml}
                 />
                 <p className="text-xs text-muted-foreground">
-                  支持 Markdown 格式，用于显示完整的台词内容
-                  {formData.type === 'text' && '，也可以上传 .md 文件导入'}
+                  {hasHtml
+                    ? '已上传 HTML 文件，无需手动输入内容'
+                    : '支持 Markdown 格式，用于显示完整的台词内容' +
+                      (formData.type === 'text' ? '，也可以上传 .html 文件导入' : '')}
                 </p>
               </div>
             </div>
