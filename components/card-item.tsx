@@ -52,7 +52,7 @@ export function CardItem({ item }: CardItemProps) {
                 className="absolute inset-0 w-full h-full"
                 allowFullScreen
                 scrolling="no"
-                border={0}
+                style={{ border: 0 }}
                 frameBorder="no"
                 loading="lazy"
               />
@@ -116,7 +116,7 @@ export function CardItem({ item }: CardItemProps) {
                 className="absolute inset-0 w-full h-full"
                 allowFullScreen
                 scrolling="no"
-                border={0}
+                style={{ border: 0 }}
                 frameBorder="no"
               />
             </div>

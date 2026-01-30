@@ -14,8 +14,6 @@ const STORE_NAME = 'korea-soap-cards';
 async function getBlobStore() {
   return getStore({
     name: STORE_NAME,
-    netlifyToken: process.env.NETLIFY_TOKEN,
-    siteID: process.env.NETLIFY_SITE_ID,
   });
 }
 

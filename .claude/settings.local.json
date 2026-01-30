@@ -15,7 +15,8 @@
       "Bash(ping:*)",
       "Bash(tasklist:*)",
       "Bash(findstr:*)",
-      "Bash(del:*)"
+      "Bash(del:*)",
+      "Bash(npm run build:*)"
     ]
   }
 }
