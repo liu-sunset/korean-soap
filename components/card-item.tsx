@@ -47,8 +47,12 @@ export function CardItem({ item }: CardItemProps) {
 
   return (
     <>
-      <Card className="overflow-hidden hover:shadow-md transition-all duration-200 cursor-pointer group">
-        <CardContent className="p-0">
+      <Card
+        className={`overflow-hidden hover:shadow-md transition-all duration-200 cursor-pointer group ${
+          item.type === 'text' ? 'h-[300px] flex flex-col' : ''
+        }`}
+      >
+        <CardContent className="p-0 flex-1 flex flex-col">
           {/* Video Section */}
           {(item.type === 'video' || item.type === 'mixed') && item.bilibiliId && (
             <div
@@ -64,6 +68,13 @@ export function CardItem({ item }: CardItemProps) {
                 frameBorder="no"
                 loading="lazy"
               />
+            </div>
+          )}
+
+          {/* 纯文本卡片内容不足时显示图标填充 */}
+          {item.type === 'text' && (
+            <div className="flex-1 flex items-center justify-center">
+              <FileText className="h-12 w-12 text-muted-foreground opacity-20" />
             </div>
           )}
 
