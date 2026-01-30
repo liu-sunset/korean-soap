@@ -26,7 +26,7 @@ export function CardItem({ item }: CardItemProps) {
 
   useEffect(() => {
     if (isOpen) {
-      marked.parse(item.content || item.summary).then(setHtmlContent);
+      Promise.resolve(marked.parse(item.content || item.summary)).then(setHtmlContent);
     }
   }, [isOpen, item]);
 
