@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/dialog';
 import { Video, Play, FileText, Layers } from 'lucide-react';
 import { CardItem as CardItemType } from '@/lib/types';
+import { marked } from 'marked';
 
 interface CardItemProps {
   item: CardItemType;
@@ -20,7 +21,14 @@ interface CardItemProps {
 
 export function CardItem({ item }: CardItemProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [htmlContent, setHtmlContent] = useState('');
   const needsExpand = item.content && item.content.length > 100;
+
+  useEffect(() => {
+    if (isOpen) {
+      marked.parse(item.content || item.summary).then(setHtmlContent);
+    }
+  }, [isOpen, item]);
 
   const getBilibiliEmbedUrl = (bvid: string) => {
     return `https://player.bilibili.com/player.html?bvid=${bvid}&page=1&high_quality=1&danmaku=1`;
@@ -123,9 +131,12 @@ export function CardItem({ item }: CardItemProps) {
           )}
 
           {/* Full Content */}
-          <div className="prose prose-sm max-w-none text-foreground">
-            {item.content || item.summary}
-          </div>
+          <div
+            className="prose prose-sm max-w-none text-foreground dark:prose-invert"
+            dangerouslySetInnerHTML={{
+              __html: htmlContent
+            }}
+          />
         </DialogContent>
       </Dialog>
     </>
