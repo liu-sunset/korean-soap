@@ -45,6 +45,7 @@ export default function AdminPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedFileName, setSelectedFileName] = useState<string>('');
   const [hasHtml, setHasHtml] = useState(false);
+  const [fileType, setFileType] = useState<'html' | 'md' | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const loadCards = async () => {
@@ -75,6 +76,7 @@ export default function AdminPage() {
     setFormData({ type: 'text', summary: '' });
     setSelectedFileName('');
     setHasHtml(false);
+    setFileType(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -91,6 +93,7 @@ export default function AdminPage() {
       htmlContent: card.htmlContent,
     });
     setHasHtml(!!card.htmlContent);
+    setFileType(card.htmlContent ? 'html' : null);
     setSelectedFileName('');
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
@@ -102,17 +105,29 @@ export default function AdminPage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // 检查是否为 .html 文件
-    if (!file.name.endsWith('.html')) {
-      alert('请选择 HTML (.html) 文件');
+    // 检查是否为 .html 或 .md 文件
+    const isHtml = file.name.endsWith('.html');
+    const isMd = file.name.endsWith('.md');
+
+    if (!isHtml && !isMd) {
+      alert('请选择 HTML (.html) 或 Markdown (.md) 文件');
       return;
     }
 
     try {
       const text = await file.text();
-      setFormData({ ...formData, htmlContent: text, content: '' });
+      if (isHtml) {
+        // 上传 .html 文件：存储到 htmlContent，禁用文本输入框
+        setFormData({ ...formData, htmlContent: text, content: '' });
+        setHasHtml(true);
+        setFileType('html');
+      } else {
+        // 上传 .md 文件：存储到 content，不禁用文本输入框，用户可以在后面继续输入
+        setFormData({ ...formData, content: text });
+        setHasHtml(false);
+        setFileType('md');
+      }
       setSelectedFileName(file.name);
-      setHasHtml(true);
     } catch (error) {
       console.error('Failed to read file:', error);
       alert('读取文件失败');
@@ -158,6 +173,7 @@ export default function AdminPage() {
         setFormData({ type: 'text', summary: '' });
         setSelectedFileName('');
         setHasHtml(false);
+        setFileType(null);
         if (fileInputRef.current) {
           fileInputRef.current.value = '';
         }
@@ -395,10 +411,10 @@ export default function AdminPage() {
                     <input
                       ref={fileInputRef}
                       type="file"
-                      accept=".html"
+                      accept=".html,.md"
                       onChange={handleFileUpload}
                       className="hidden"
-                      id="html-file-upload"
+                      id="file-upload"
                     />
                     <Button
                       type="button"
@@ -408,7 +424,7 @@ export default function AdminPage() {
                       className="w-full"
                     >
                       <Upload className="h-4 w-4 mr-2" />
-                      上传 HTML 文件
+                      上传文件
                     </Button>
                     {selectedFileName && (
                       <p className="text-xs text-muted-foreground">
@@ -431,7 +447,7 @@ export default function AdminPage() {
                   {hasHtml
                     ? '已上传 HTML 文件，无需手动输入内容'
                     : '支持 Markdown 格式，用于显示完整的台词内容' +
-                      (formData.type === 'text' ? '，也可以上传 .html 文件导入' : '')}
+                      (formData.type === 'text' ? '，也可以上传 .html 或 .md 文件导入' : '')}
                 </p>
               </div>
             </div>
