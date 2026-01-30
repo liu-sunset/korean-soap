@@ -111,7 +111,7 @@ export function CardItem({ item }: CardItemProps) {
 
       {/* Detail Dialog */}
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden">
           <DialogHeader>
             <DialogTitle>{item.summary}</DialogTitle>
             <DialogDescription>
@@ -127,27 +127,30 @@ export function CardItem({ item }: CardItemProps) {
             </DialogDescription>
           </DialogHeader>
 
-          {/* Video */}
-          {(item.type === 'video' || item.type === 'mixed') && item.bilibiliId && (
-            <div className="relative aspect-video bg-muted rounded-2xl overflow-hidden mb-4">
-              <iframe
-                src={getBilibiliEmbedUrl(item.bilibiliId)}
-                className="absolute inset-0 w-full h-full"
-                allowFullScreen
-                scrolling="no"
-                style={{ border: 0 }}
-                frameBorder="no"
-              />
-            </div>
-          )}
+          {/* 滚动容器 */}
+          <div className="overflow-y-auto pr-1 max-h-[calc(90vh-8rem)]">
+            {/* Video */}
+            {(item.type === 'video' || item.type === 'mixed') && item.bilibiliId && (
+              <div className="relative aspect-video bg-muted rounded-2xl overflow-hidden mb-4">
+                <iframe
+                  src={getBilibiliEmbedUrl(item.bilibiliId)}
+                  className="absolute inset-0 w-full h-full"
+                  allowFullScreen
+                  scrolling="no"
+                  style={{ border: 0 }}
+                  frameBorder="no"
+                />
+              </div>
+            )}
 
-          {/* Full Content */}
-          <div
-            className="prose prose-sm max-w-none text-foreground dark:prose-invert"
-            dangerouslySetInnerHTML={{
-              __html: htmlContent
-            }}
-          />
+            {/* Full Content */}
+            <div
+              className="prose prose-sm max-w-none text-foreground dark:prose-invert pb-4"
+              dangerouslySetInnerHTML={{
+                __html: htmlContent
+              }}
+            />
+          </div>
         </DialogContent>
       </Dialog>
     </>
