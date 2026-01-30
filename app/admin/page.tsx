@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Edit, Trash2, Video, FileText, Layers } from 'lucide-react';
+import { Plus, Edit, Trash2, Video, FileText, Layers, Upload } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
@@ -42,6 +42,8 @@ export default function AdminPage() {
     summary: '',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedFileName, setSelectedFileName] = useState<string>('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const loadCards = async () => {
     try {
@@ -69,6 +71,10 @@ export default function AdminPage() {
   const handleCreate = () => {
     setEditingCard(null);
     setFormData({ type: 'text', summary: '' });
+    setSelectedFileName('');
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
     setIsDialogOpen(true);
   };
 
@@ -80,7 +86,31 @@ export default function AdminPage() {
       summary: card.summary,
       content: card.content,
     });
+    setSelectedFileName('');
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
     setIsDialogOpen(true);
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // 检查是否为 .md 文件
+    if (!file.name.endsWith('.md')) {
+      alert('请选择 Markdown (.md) 文件');
+      return;
+    }
+
+    try {
+      const text = await file.text();
+      setFormData({ ...formData, content: text });
+      setSelectedFileName(file.name);
+    } catch (error) {
+      console.error('Failed to read file:', error);
+      alert('读取文件失败');
+    }
   };
 
   const handleDelete = async (id: string) => {
@@ -120,6 +150,10 @@ export default function AdminPage() {
         setIsDialogOpen(false);
         setEditingCard(null);
         setFormData({ type: 'text', summary: '' });
+        setSelectedFileName('');
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
       }
     } catch (error) {
       console.error('Failed to save card:', error);
@@ -347,6 +381,36 @@ export default function AdminPage() {
 
               <div className="space-y-2">
                 <label className="text-sm font-medium">详细内容</label>
+
+                {/* 文件上传区域 - 仅在文本类型时显示 */}
+                {formData.type === 'text' && (
+                  <div className="space-y-2">
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept=".md"
+                      onChange={handleFileUpload}
+                      className="hidden"
+                      id="markdown-file-upload"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="w-full"
+                    >
+                      <Upload className="h-4 w-4 mr-2" />
+                      上传 Markdown 文件
+                    </Button>
+                    {selectedFileName && (
+                      <p className="text-xs text-muted-foreground">
+                        已选择: {selectedFileName}
+                      </p>
+                    )}
+                  </div>
+                )}
+
                 <Textarea
                   value={formData.content || ''}
                   onChange={(e) =>
@@ -357,6 +421,7 @@ export default function AdminPage() {
                 />
                 <p className="text-xs text-muted-foreground">
                   支持 Markdown 格式，用于显示完整的台词内容
+                  {formData.type === 'text' && '，也可以上传 .md 文件导入'}
                 </p>
               </div>
             </div>
