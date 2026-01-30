@@ -115,7 +115,7 @@ export function CardItem({ item }: CardItemProps) {
       {/* Detail Dialog */}
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogContent className={`${
-          item.type === 'text' ? 'max-w-6xl h-[85vh]' : 'max-w-4xl max-h-[90vh]'
+          item.type === 'text' ? 'max-w-6xl h-[105vh]' : 'max-w-4xl max-h-[90vh]'
         } overflow-hidden flex flex-col`}>
           <DialogHeader>
             <DialogTitle>{item.summary}</DialogTitle>
