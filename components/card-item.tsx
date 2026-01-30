@@ -49,7 +49,7 @@ export function CardItem({ item }: CardItemProps) {
     <>
       <Card
         className={`overflow-hidden hover:shadow-md transition-all duration-200 cursor-pointer group ${
-          item.type === 'text' ? 'h-[400px] flex flex-col' : ''
+          item.type === 'text' ? 'h-[350px] flex flex-col' : ''
         }`}
       >
         <CardContent className="p-0 flex-1 flex flex-col">
