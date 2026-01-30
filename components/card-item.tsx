@@ -111,7 +111,9 @@ export function CardItem({ item }: CardItemProps) {
 
       {/* Detail Dialog */}
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden">
+        <DialogContent className={`${
+          item.type === 'text' ? 'max-w-6xl' : 'max-w-3xl'
+        } max-h-[90vh] overflow-hidden`}>
           <DialogHeader>
             <DialogTitle>{item.summary}</DialogTitle>
             <DialogDescription>
