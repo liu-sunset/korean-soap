@@ -15,17 +15,6 @@ import { Video, Play, FileText, Layers } from 'lucide-react';
 import { CardItem as CardItemType } from '@/lib/types';
 import { marked } from 'marked';
 
-const getBilibiliCoverUrl = async (bvid: string): Promise<string> => {
-  try {
-    const response = await fetch(`https://api.bilibili.com/x/web-interface/view?bvid=${bvid}`);
-    const data = await response.json();
-    return data.data?.pic || '';
-  } catch (error) {
-    console.error('Failed to fetch video cover:', error);
-    return '';
-  }
-};
-
 interface CardItemProps {
   item: CardItemType;
 }
@@ -33,19 +22,7 @@ interface CardItemProps {
 export function CardItem({ item }: CardItemProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [htmlContent, setHtmlContent] = useState('');
-  const [coverUrls, setCoverUrls] = useState<Record<string, string>>({});
   const needsExpand = item.content && item.content.length > 100;
-
-  // 加载封面
-  useEffect(() => {
-    if ((item.type === 'video' || item.type === 'mixed') && item.bilibiliId) {
-      getBilibiliCoverUrl(item.bilibiliId).then(url => {
-        if (url) {
-          setCoverUrls(prev => ({ ...prev, [item.id]: url }));
-        }
-      });
-    }
-  }, [item]);
 
   useEffect(() => {
     if (isOpen) {
@@ -84,24 +61,18 @@ export function CardItem({ item }: CardItemProps) {
           {/* Video Section */}
           {(item.type === 'video' || item.type === 'mixed') && item.bilibiliId && (
             <div
-              className="relative aspect-video bg-muted group-hover:opacity-90 transition-opacity cursor-pointer"
+              className="relative aspect-video bg-muted group-hover:opacity-90 transition-opacity"
               onClick={() => setIsOpen(true)}
             >
-              {coverUrls[item.id] ? (
-                <img
-                  src={coverUrls[item.id]}
-                  alt={item.summary}
-                  className="absolute inset-0 w-full h-full object-cover"
-                  loading="lazy"
-                />
-              ) : (
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <Video className="h-12 w-12 text-muted-foreground opacity-30" />
-                </div>
-              )}
-              <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                <Play className="h-12 w-12 text-white" />
-              </div>
+              <iframe
+                src={getBilibiliEmbedUrl(item.bilibiliId)}
+                className="absolute inset-0 w-full h-full"
+                allowFullScreen
+                scrolling="no"
+                style={{ border: 0 }}
+                frameBorder="no"
+                loading="lazy"
+              />
             </div>
           )}
 
@@ -166,24 +137,14 @@ export function CardItem({ item }: CardItemProps) {
             {/* Video */}
             {(item.type === 'video' || item.type === 'mixed') && item.bilibiliId && (
               <div className="relative aspect-video bg-muted rounded-2xl overflow-hidden mb-4">
-                {isOpen ? (
-                  <iframe
-                    key={`${item.id}-player`}
-                    src={`${getBilibiliEmbedUrl(item.bilibiliId)}&autoplay=1`}
-                    className="absolute inset-0 w-full h-full"
-                    allowFullScreen
-                    allow="autoplay"
-                    scrolling="no"
-                    style={{ border: 0 }}
-                    frameBorder="no"
-                  />
-                ) : (
-                  <img
-                    src={coverUrls[item.id] || ''}
-                    alt={item.summary}
-                    className="absolute inset-0 w-full h-full object-cover"
-                  />
-                )}
+                <iframe
+                  src={getBilibiliEmbedUrl(item.bilibiliId)}
+                  className="absolute inset-0 w-full h-full"
+                  allowFullScreen
+                  scrolling="no"
+                  style={{ border: 0 }}
+                  frameBorder="no"
+                />
               </div>
             )}
 
