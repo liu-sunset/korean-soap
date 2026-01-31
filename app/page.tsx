@@ -18,7 +18,9 @@ export default function HomePage() {
         const response = await fetch('/api/cards');
         if (response.ok) {
           const data = await response.json();
-          setCards(data);
+          // 按时间倒序排列（最新的在前面）
+          const sortedCards = [...data].sort((a, b) => b.timestamp - a.timestamp);
+          setCards(sortedCards);
         }
       } catch (error) {
         console.error('Failed to load cards:', error);

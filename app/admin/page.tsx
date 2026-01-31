@@ -53,7 +53,9 @@ export default function AdminPage() {
       const response = await fetch('/api/cards');
       if (response.ok) {
         const data = await response.json();
-        setCards(data);
+        // 按时间倒序排列（最新的在前面）
+        const sortedCards = [...data].sort((a, b) => b.timestamp - a.timestamp);
+        setCards(sortedCards);
       }
     } catch (error) {
       console.error('Failed to load cards:', error);
@@ -66,9 +68,13 @@ export default function AdminPage() {
     loadCards();
   }, []);
 
-  const handleLogout = () => {
-    document.cookie = 'admin_session=; path=/; max-age=0';
-    window.location.href = '/';
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/logout', { method: 'POST' });
+      window.location.href = '/login';
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
   };
 
   const handleCreate = () => {
@@ -167,7 +173,14 @@ export default function AdminPage() {
       });
 
       if (response.ok) {
-        await loadCards();
+        if (editingCard) {
+          // 编辑模式：重新加载所有数据
+          await loadCards();
+        } else {
+          // 新增模式：直接在本地状态顶部添加新卡片
+          const newCard = await response.json();
+          setCards([newCard, ...cards]);
+        }
         setIsDialogOpen(false);
         setEditingCard(null);
         setFormData({ type: 'text', summary: '' });

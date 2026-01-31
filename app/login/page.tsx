@@ -31,7 +31,7 @@ export default function LoginPage() {
       const result = await response.json();
 
       if (result.success) {
-        router.push('/admin');
+        window.location.href = '/admin';
       } else {
         setError('用户名或密码错误');
       }
