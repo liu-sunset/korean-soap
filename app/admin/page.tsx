@@ -13,6 +13,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import {
@@ -22,6 +32,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { useToast } from '@/hooks/use-toast';
 import { CardItem as CardItemType } from '@/lib/types';
 
 interface FormData {
@@ -49,6 +60,8 @@ export default function AdminPage() {
   const [coverText, setCoverText] = useState<string>('');
   const [coverTextError, setCoverTextError] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [deleteCardId, setDeleteCardId] = useState<string | null>(null);
+  const { toast } = useToast();
 
   const MAX_COVER_TEXT_LENGTH = 10;
 
@@ -127,7 +140,7 @@ export default function AdminPage() {
     const isMd = file.name.endsWith('.md');
 
     if (!isHtml && !isMd) {
-      alert('请选择 HTML (.html) 或 Markdown (.md) 文件');
+      toast('请选择 HTML (.html) 或 Markdown (.md) 文件', 'warning');
       return;
     }
 
@@ -155,7 +168,7 @@ export default function AdminPage() {
       setSelectedFileName(file.name);
     } catch (error) {
       console.error('Failed to read file:', error);
-      alert('读取文件失败');
+      toast('读取文件失败', 'error');
     }
   };
 
@@ -171,18 +184,26 @@ export default function AdminPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('确定要删除这张卡片吗？')) return;
+    setDeleteCardId(id);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteCardId) return;
 
     try {
-      const response = await fetch(`/api/admin/cards/${id}`, {
+      const response = await fetch(`/api/admin/cards/${deleteCardId}`, {
         method: 'DELETE',
       });
 
       if (response.ok) {
-        setCards(cards.filter(card => card.id !== id));
+        setCards(cards.filter(card => card.id !== deleteCardId));
+        toast('卡片已删除', 'success');
       }
     } catch (error) {
       console.error('Failed to delete card:', error);
+      toast('删除失败', 'error');
+    } finally {
+      setDeleteCardId(null);
     }
   };
 
@@ -372,7 +393,7 @@ export default function AdminPage() {
                               Bilibili ID: {card.bilibiliId}
                             </p>
                           )}
-                          {card.content && (
+                          {card.type === 'video' && card.content && (
                             <p className="text-xs text-muted-foreground line-clamp-3">
                               {card.content}
                             </p>
@@ -571,6 +592,23 @@ export default function AdminPage() {
           </form>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!deleteCardId} onOpenChange={() => setDeleteCardId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>确认删除</AlertDialogTitle>
+            <AlertDialogDescription>
+              确定要删除这张卡片吗？此操作无法撤销。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setDeleteCardId(null)}>取消</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">
+              删除
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </main>
   );
 }
