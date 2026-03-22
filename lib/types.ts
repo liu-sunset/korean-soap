@@ -7,5 +7,6 @@ export interface CardItem {
   summary: string;
   content?: string;
   htmlContent?: string;
+  coverText?: string;
   timestamp: number;
 }

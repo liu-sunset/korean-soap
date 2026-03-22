@@ -7,6 +7,7 @@ export interface CardData {
   summary: string;
   content?: string;
   htmlContent?: string;
+  coverText?: string;
   timestamp: number;
 }
 
@@ -18,7 +19,6 @@ async function getBlobStore() {
   });
 }
 
-// 获取所有卡片
 export async function getAllCards(): Promise<CardData[]> {
   const store = await getBlobStore();
   try {
@@ -30,7 +30,6 @@ export async function getAllCards(): Promise<CardData[]> {
   }
 }
 
-// 添加新卡片
 export async function addCard(card: Omit<CardData, 'id' | 'timestamp'>): Promise<CardData> {
   const store = await getBlobStore();
   const cards = await getAllCards();
@@ -47,7 +46,6 @@ export async function addCard(card: Omit<CardData, 'id' | 'timestamp'>): Promise
   return newCard;
 }
 
-// 删除卡片
 export async function deleteCard(id: string): Promise<boolean> {
   const store = await getBlobStore();
   const cards = await getAllCards();
@@ -58,7 +56,6 @@ export async function deleteCard(id: string): Promise<boolean> {
   return true;
 }
 
-// 更新卡片
 export async function updateCard(id: string, updates: Partial<CardData>): Promise<CardData | null> {
   const store = await getBlobStore();
   const cards = await getAllCards();

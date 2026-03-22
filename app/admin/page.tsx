@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Edit, Trash2, Video, FileText, Layers, Upload } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -12,7 +12,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -31,6 +30,7 @@ interface FormData {
   summary: string;
   content?: string;
   htmlContent?: string;
+  coverText?: string;
 }
 
 export default function AdminPage() {
@@ -46,14 +46,17 @@ export default function AdminPage() {
   const [selectedFileName, setSelectedFileName] = useState<string>('');
   const [hasHtml, setHasHtml] = useState(false);
   const [fileType, setFileType] = useState<'html' | 'md' | null>(null);
+  const [coverText, setCoverText] = useState<string>('');
+  const [coverTextError, setCoverTextError] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const MAX_COVER_TEXT_LENGTH = 10;
 
   const loadCards = async () => {
     try {
       const response = await fetch('/api/cards');
       if (response.ok) {
         const data = await response.json();
-        // 按时间倒序排列（最新的在前面）
         const sortedCards = [...data].sort((a, b) => b.timestamp - a.timestamp);
         setCards(sortedCards);
       }
@@ -83,6 +86,8 @@ export default function AdminPage() {
     setSelectedFileName('');
     setHasHtml(false);
     setFileType(null);
+    setCoverText('');
+    setCoverTextError('');
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -97,21 +102,27 @@ export default function AdminPage() {
       summary: card.summary,
       content: card.content,
       htmlContent: card.htmlContent,
+      coverText: card.coverText,
     });
     setHasHtml(!!card.htmlContent);
     setFileType(card.htmlContent ? 'html' : null);
     setSelectedFileName('');
+    setCoverText(card.coverText || '');
+    setCoverTextError('');
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
     setIsDialogOpen(true);
   };
 
+  const extractCoverTextFromFileName = (fileName: string): string => {
+    return fileName.replace(/\.(html|md)$/i, '');
+  };
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // 检查是否为 .html 或 .md 文件
     const isHtml = file.name.endsWith('.html');
     const isMd = file.name.endsWith('.md');
 
@@ -122,22 +133,41 @@ export default function AdminPage() {
 
     try {
       const text = await file.text();
+      const baseName = extractCoverTextFromFileName(file.name);
+
       if (isHtml) {
-        // 上传 .html 文件：存储到 htmlContent，禁用文本输入框
         setFormData({ ...formData, htmlContent: text, content: '' });
         setHasHtml(true);
         setFileType('html');
+        setCoverText(baseName);
+        if (baseName.length > MAX_COVER_TEXT_LENGTH) {
+          setCoverTextError(`文件名较长，封面将截断显示前${MAX_COVER_TEXT_LENGTH}字`);
+        }
       } else {
-        // 上传 .md 文件：存储到 content，不禁用文本输入框，用户可以在后面继续输入
         setFormData({ ...formData, content: text });
         setHasHtml(false);
         setFileType('md');
+        setCoverText(baseName);
+        if (baseName.length > MAX_COVER_TEXT_LENGTH) {
+          setCoverTextError(`文件名较长，封面将截断显示前${MAX_COVER_TEXT_LENGTH}字`);
+        }
       }
       setSelectedFileName(file.name);
     } catch (error) {
       console.error('Failed to read file:', error);
       alert('读取文件失败');
     }
+  };
+
+  const validateForm = (): boolean => {
+    if (formData.type === 'text') {
+      const effectiveCoverText = coverText.trim();
+      if (!selectedFileName && !effectiveCoverText) {
+        setCoverTextError('请输入封面文字');
+        return false;
+      }
+    }
+    return true;
   };
 
   const handleDelete = async (id: string) => {
@@ -158,7 +188,13 @@ export default function AdminPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!validateForm()) {
+      return;
+    }
+
     setIsSubmitting(true);
+    setCoverTextError('');
 
     try {
       const url = editingCard
@@ -166,18 +202,24 @@ export default function AdminPage() {
         : '/api/admin/cards';
       const method = editingCard ? 'PATCH' : 'POST';
 
+      const submitData: FormData = {
+        ...formData,
+      };
+
+      if (formData.type === 'text' && coverText.trim()) {
+        submitData.coverText = coverText.trim();
+      }
+
       const response = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(submitData),
       });
 
       if (response.ok) {
         if (editingCard) {
-          // 编辑模式：重新加载所有数据
           await loadCards();
         } else {
-          // 新增模式：直接在本地状态顶部添加新卡片
           const newCard = await response.json();
           setCards([newCard, ...cards]);
         }
@@ -187,6 +229,8 @@ export default function AdminPage() {
         setSelectedFileName('');
         setHasHtml(false);
         setFileType(null);
+        setCoverText('');
+        setCoverTextError('');
         if (fileInputRef.current) {
           fileInputRef.current.value = '';
         }
@@ -195,6 +239,15 @@ export default function AdminPage() {
       console.error('Failed to save card:', error);
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleCoverTextChange = (value: string) => {
+    setCoverText(value);
+    if (value.length > MAX_COVER_TEXT_LENGTH) {
+      setCoverTextError(`封面文字不能超过${MAX_COVER_TEXT_LENGTH}个字`);
+    } else {
+      setCoverTextError('');
     }
   };
 
@@ -219,6 +272,8 @@ export default function AdminPage() {
         return '文字';
     }
   };
+
+  const remainingChars = MAX_COVER_TEXT_LENGTH - coverText.length;
 
   if (isLoading) {
     return (
@@ -322,6 +377,11 @@ export default function AdminPage() {
                               {card.content}
                             </p>
                           )}
+                          {card.coverText && (
+                            <p className="text-xs text-muted-foreground">
+                              封面文字: {card.coverText}
+                            </p>
+                          )}
                         </div>
                         <div className="flex gap-2 shrink-0">
                           <Button
@@ -349,7 +409,6 @@ export default function AdminPage() {
         </AnimatePresence>
       </div>
 
-      {/* Create/Edit Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -415,11 +474,44 @@ export default function AdminPage() {
                 />
               </div>
 
+              {formData.type === 'text' && (
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">
+                    封面文字 {!selectedFileName && <span className="text-destructive">*</span>}
+                  </label>
+                  <Input
+                    value={coverText}
+                    onChange={(e) => handleCoverTextChange(e.target.value)}
+                    placeholder="输入封面显示的文字（最多10个字）"
+                    maxLength={selectedFileName ? undefined : MAX_COVER_TEXT_LENGTH + 5}
+                    disabled={!!selectedFileName}
+                  />
+                  <div className="flex items-center justify-between">
+                    {selectedFileName ? (
+                      <p className="text-xs text-muted-foreground">
+                        封面将显示文件名：{extractCoverTextFromFileName(selectedFileName)}
+                      </p>
+                    ) : (
+                      <p className={`text-xs ${remainingChars < 0 ? 'text-destructive' : 'text-muted-foreground'}`}>
+                        {remainingChars > 0 ? `还可以输入 ${remainingChars} 个字` : ''}
+                        {remainingChars === 0 && '已达到字数上限'}
+                        {remainingChars < 0 && '封面文字不能超过10个字'}
+                      </p>
+                    )}
+                  </div>
+                  {coverTextError && (
+                    <p className="text-xs text-destructive">{coverTextError}</p>
+                  )}
+                  <p className="text-xs text-muted-foreground">
+                    封面文字将艺术字体居中显示在卡片上
+                  </p>
+                </div>
+              )}
+
               <div className="space-y-2">
                 <label className="text-sm font-medium">详细内容</label>
 
-                {/* 文件上传区域 - 仅在文本类型时显示 */}
-                {formData.type === 'text' && (
+                {(formData.type === 'text' || formData.type === 'mixed') && (
                   <div className="space-y-2">
                     <input
                       ref={fileInputRef}
@@ -437,7 +529,7 @@ export default function AdminPage() {
                       className="w-full"
                     >
                       <Upload className="h-4 w-4 mr-2" />
-                      上传文件
+                      上传文本文件
                     </Button>
                     {selectedFileName && (
                       <p className="text-xs text-muted-foreground">
@@ -460,7 +552,7 @@ export default function AdminPage() {
                   {hasHtml
                     ? '已上传 HTML 文件，无需手动输入内容'
                     : '支持 Markdown 格式，用于显示完整的台词内容' +
-                      (formData.type === 'text' ? '，也可以上传 .html 或 .md 文件导入' : '')}
+                      ((formData.type === 'text' || formData.type === 'mixed') ? '，也可以上传 .html 或 .md 文件导入' : '')}
                 </p>
               </div>
             </div>

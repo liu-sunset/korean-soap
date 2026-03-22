@@ -22,11 +22,9 @@ interface CardItemProps {
 export function CardItem({ item }: CardItemProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [htmlContent, setHtmlContent] = useState('');
-  const needsExpand = item.content && item.content.length > 100;
 
   useEffect(() => {
     if (isOpen) {
-      // 如果有 htmlContent，直接使用；否则解析 Markdown
       if (item.htmlContent) {
         setHtmlContent(item.htmlContent);
       } else {
@@ -50,6 +48,21 @@ export function CardItem({ item }: CardItemProps) {
     }
   };
 
+  const getDisplayCoverText = () => {
+    if (item.coverText) {
+      return item.coverText;
+    }
+    if (item.htmlContent) {
+      const titleMatch = item.htmlContent.match(/<h[1-6][^>]*>([^<]+)<\/h[1-6]>/i);
+      if (titleMatch) {
+        return titleMatch[1].trim();
+      }
+      const bodyText = item.htmlContent.replace(/<[^>]+>/g, '').trim();
+      return bodyText.slice(0, 10);
+    }
+    return item.summary.slice(0, 10);
+  };
+
   return (
     <>
       <Card
@@ -58,7 +71,6 @@ export function CardItem({ item }: CardItemProps) {
         }`}
       >
         <CardContent className="p-0 flex-1 flex flex-col">
-          {/* Video Section */}
           {(item.type === 'video' || item.type === 'mixed') && item.bilibiliId && (
             <div
               className="relative aspect-video bg-muted group-hover:opacity-90 transition-opacity"
@@ -76,14 +88,20 @@ export function CardItem({ item }: CardItemProps) {
             </div>
           )}
 
-          {/* 纯文本卡片内容不足时显示图标填充 */}
           {item.type === 'text' && (
-            <div className="flex-1 flex items-center justify-center">
-              <FileText className="h-12 w-12 text-muted-foreground opacity-20" />
+            <div className="flex-1 flex items-center justify-center p-6 bg-gradient-to-b from-muted/30 to-muted/10">
+              <h2
+                className="text-center text-xl font-serif tracking-wide text-foreground/80 whitespace-pre-wrap leading-relaxed"
+                style={{
+                  fontFamily: '"Noto Serif SC", "Source Han Serif SC", "STSong", "SimSun", serif',
+                  textShadow: '0 2px 4px rgba(0,0,0,0.05)',
+                }}
+              >
+                {getDisplayCoverText()}
+              </h2>
             </div>
           )}
 
-          {/* Text Section */}
           <div className="p-5">
             <div className="flex items-center gap-2 mb-2">
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-secondary text-secondary-foreground">
@@ -112,7 +130,6 @@ export function CardItem({ item }: CardItemProps) {
         </CardContent>
       </Card>
 
-      {/* Detail Dialog */}
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogContent className={`${
           item.type === 'text' ? 'max-w-6xl h-[95vh]' : 'max-w-4xl max-h-[90vh]'
@@ -132,9 +149,7 @@ export function CardItem({ item }: CardItemProps) {
             </DialogDescription>
           </DialogHeader>
 
-          {/* 滚动容器 */}
           <div className="overflow-y-auto pr-1 flex-1">
-            {/* Video */}
             {(item.type === 'video' || item.type === 'mixed') && item.bilibiliId && (
               <div className="relative aspect-video bg-muted rounded-2xl overflow-hidden mb-4">
                 <iframe
@@ -148,7 +163,6 @@ export function CardItem({ item }: CardItemProps) {
               </div>
             )}
 
-            {/* Full Content */}
             <div
               className={item.htmlContent ? 'text-foreground pb-4' : 'prose prose-sm max-w-none text-foreground dark:prose-invert pb-4'}
               dangerouslySetInnerHTML={{

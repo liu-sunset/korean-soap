@@ -87,3 +87,6 @@ cypress/screenshots/
 # Local development
 .local/
 .cache/
+
+# Trae AI
+.trae/

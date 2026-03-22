@@ -3,14 +3,24 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
-import { Plus } from 'lucide-react';
+import { Plus, LayoutGrid, FileText, Video, Layers } from 'lucide-react';
 import { CardItem } from '@/components/card-item';
 import { Button } from '@/components/ui/button';
 import { CardItem as CardItemType } from '@/lib/types';
 
+type FilterType = 'all' | 'text' | 'video' | 'mixed';
+
+const filterOptions: { value: FilterType; label: string; icon: React.ReactNode }[] = [
+  { value: 'all', label: '全部', icon: <LayoutGrid className="w-4 h-4" /> },
+  { value: 'text', label: '文字', icon: <FileText className="w-4 h-4" /> },
+  { value: 'video', label: '视频', icon: <Video className="w-4 h-4" /> },
+  { value: 'mixed', label: '混合', icon: <Layers className="w-4 h-4" /> },
+];
+
 export default function HomePage() {
   const [cards, setCards] = useState<CardItemType[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [filter, setFilter] = useState<FilterType>('all');
 
   useEffect(() => {
     const loadCards = async () => {
@@ -18,7 +28,6 @@ export default function HomePage() {
         const response = await fetch('/api/cards');
         if (response.ok) {
           const data = await response.json();
-          // 按时间倒序排列（最新的在前面）
           const sortedCards = [...data].sort((a, b) => b.timestamp - a.timestamp);
           setCards(sortedCards);
         }
@@ -32,9 +41,10 @@ export default function HomePage() {
     loadCards();
   }, []);
 
+  const filteredCards = filter === 'all' ? cards : cards.filter(card => card.type === filter);
+
   return (
     <main className="min-h-screen bg-[#f9fafb]">
-      {/* Header */}
       <header className="sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
           <div>
@@ -54,7 +64,25 @@ export default function HomePage() {
         </div>
       </header>
 
-      {/* Masonry Grid */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+        <div className="flex items-center gap-2 flex-wrap">
+          {filterOptions.map((option) => (
+            <button
+              key={option.value}
+              onClick={() => setFilter(option.value)}
+              className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
+                filter === option.value
+                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
+              }`}
+            >
+              {option.icon}
+              {option.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <AnimatePresence mode="wait">
           {isLoading ? (
@@ -67,7 +95,7 @@ export default function HomePage() {
             >
               <p className="text-muted-foreground">加载中...</p>
             </motion.div>
-          ) : cards.length === 0 ? (
+          ) : filteredCards.length === 0 ? (
             <motion.div
               key="empty"
               initial={{ opacity: 0 }}
@@ -76,8 +104,16 @@ export default function HomePage() {
               className="text-center py-16"
             >
               <p className="text-muted-foreground text-lg">
-                暂无内容，敬请期待
+                {filter === 'all' ? '暂无内容，敬请期待' : '暂无符合条件的卡片'}
               </p>
+              {filter !== 'all' && (
+                <button
+                  onClick={() => setFilter('all')}
+                  className="mt-4 text-sm text-primary hover:underline"
+                >
+                  查看全部卡片
+                </button>
+              )}
             </motion.div>
           ) : (
             <motion.div
@@ -87,7 +123,7 @@ export default function HomePage() {
               exit={{ opacity: 0 }}
               className="columns-1 sm:columns-2 lg:columns-3 gap-6 space-y-6"
             >
-              {cards.map((item, index) => (
+              {filteredCards.map((item, index) => (
                 <motion.div
                   key={item.id}
                   initial={{ opacity: 0, y: 20 }}

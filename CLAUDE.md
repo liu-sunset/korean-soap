@@ -6,6 +6,29 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 这是一个基于 Next.js 的治愈系韩剧剪辑与台词展示网站，采用瀑布流布局展示韩剧片段和台词。网站包含用户浏览页面和管理后台，使用 Netlify Blobs 作为数据存储。
 
+## 项目状态
+
+| 状态 | 说明 |
+|------|------|
+| 阶段 | MVP（最小可行产品）已开发完成 |
+| 部署平台 | Netlify |
+| 数据存储 | Netlify Blobs (korea-soap-cards 存储桶) |
+
+## 已完成功能
+
+- [x] 首页瀑布流展示（响应式布局：1/2/3列）
+- [x] 首页卡片类型筛选（全部/文字/视频/混合）
+- [x] 卡片详情弹窗（支持 Markdown 和 HTML 渲染）
+- [x] Bilibili 视频嵌入播放
+- [x] 三种卡片类型支持：纯文字、视频、混合
+- [x] 管理后台登录认证（Cookie-based session）
+- [x] 卡片增删改查（CRUD）功能
+- [x] HTML/Markdown 文件上传
+- [x] 纯文本卡片封面文字（艺术字样式）
+- [x] 管理员路由保护（中间件）
+- [x] 退出登录功能
+
+
 ## 开发命令
 
 ```bash
@@ -30,6 +53,7 @@ npm run lint
 - **数据存储**: @netlify/blobs (无服务器存储)
 - **类型安全**: TypeScript 5.9.3
 - **图标**: Lucide React
+- **Markdown 解析**: marked
 
 ## 架构说明
 
@@ -51,12 +75,19 @@ app/
 
 components/
 ├── ui/                        # Radix UI 组件封装
+│   ├── button.tsx
+│   ├── card.tsx
+│   ├── dialog.tsx
+│   ├── input.tsx
+│   ├── select.tsx
+│   └── textarea.tsx
 └── card-item.tsx              # 卡片展示组件
 
 lib/
 ├── blobs.ts                   # Netlify Blobs 数据操作
 ├── types.ts                   # 类型定义
-└── utils.ts                   # 工具函数
+├── utils.ts                   # 工具函数
+└── mock-data.ts               # Mock 数据（开发用）
 
 middleware.ts                  # 中间件 - 管理员路由保护
 ```
@@ -82,6 +113,7 @@ middleware.ts                  # 中间件 - 管理员路由保护
    - `summary`: 摘要/标题
    - `content`: Markdown 格式的详细内容
    - `htmlContent`: 上传的 HTML 文件内容（纯文本类型时使用）
+   - `coverText`: 封面显示文字（纯文本类型，最多10个字）
    - `timestamp`: 创建时间戳
 
 5. **卡片排序**:
@@ -96,14 +128,43 @@ middleware.ts                  # 中间件 - 管理员路由保护
    - 新增卡片时直接在本地状态顶部添加（`[newCard, ...cards]`），无需等待完整 API 响应
    - 编辑卡片时仍需重新加载所有数据以确保一致性
 
+### 模块间关系
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                     用户浏览器                           │
+└─────────────────────────────────────────────────────────┘
+                              │
+          ┌───────────────────┼───────────────────┐
+          ▼                   ▼                   ▼
+    ┌──────────┐       ┌──────────┐       ┌──────────┐
+    │   首页    │       │  管理后台 │       │  登录页   │
+    │(page.tsx)│       │(admin/)   │       │ (login/) │
+    └────┬─────┘       └────┬─────┘       └────┬─────┘
+         │                 │                   │
+         │                 │                   │
+         ▼                 ▼                   ▼
+    ┌─────────────────────────────────────────────────┐
+    │              /api/cards (GET)                  │
+    └─────────────────────────────────────────────────┘
+         │                 │                   │
+         ▼                 ▼                   ▼
+    ┌─────────────────────────────────────────────────┐
+    │              Netlify Blobs                     │
+    │         (korea-soap-cards 存储桶)               │
+    └─────────────────────────────────────────────────┘
+```
+
 ### API 端点
 
-- `GET /api/cards` - 获取所有卡片（公开）
-- `POST /api/login` - 管理员登录
-- `POST /api/logout` - 管理员退出登录（删除 httpOnly cookie）
-- `POST /api/admin/cards` - 创建卡片（需要认证）
-- `PATCH /api/admin/cards/[id]` - 更新卡片（需要认证）
-- `DELETE /api/admin/cards/[id]` - 删除卡片（需要认证）
+| 端点 | 方法 | 描述 | 认证 |
+|------|------|------|------|
+| `/api/cards` | GET | 获取所有卡片（公开） | 否 |
+| `/api/login` | POST | 管理员登录 | 否 |
+| `/api/logout` | POST | 退出登录 | 否 |
+| `/api/admin/cards` | POST | 创建卡片 | 是 |
+| `/api/admin/cards/[id]` | PATCH | 更新卡片 | 是 |
+| `/api/admin/cards/[id]` | DELETE | 删除卡片 | 是 |
 
 ## 环境变量
 
@@ -137,6 +198,16 @@ https://player.bilibili.com/player.html?bvid={BV号}&page=1&high_quality=1&danma
 - 上传逻辑在 `app/admin/page.tsx` 的 `handleFileUpload` 函数中实现
 - 展示时优先使用 `htmlContent`，否则用 `marked` 解析 `content`
 
+### 混合卡片文本上传
+- 混合类型卡片现在也支持上传 HTML 或 Markdown 文本文件
+- 混合卡片展示时：封面显示视频播放器，详情弹窗显示视频 + 文本内容
+
+### 封面文字规则
+- **上传文件时**：自动使用文件名（去除扩展名）作为封面文字
+- **手写文本时**：必须输入封面文字（最多10个字）
+- **封面展示**：使用艺术字体（serif）居中显示在纯文本卡片上
+- **向后兼容**：旧卡片没有 `coverText` 字段时，自动从 `htmlContent` 或 `summary` 提取
+
 ## 注意事项
 
 1. **认证安全性**: 当前使用硬编码的 admin 凭证和简单的 Cookie 验证，不适合生产环境。考虑使用 JWT 或更安全的认证机制。
@@ -152,3 +223,16 @@ https://player.bilibili.com/player.html?bvid={BV号}&page=1&high_quality=1&danma
 6. **登录跳转注意事项**: 修改登录后的跳转逻辑时，必须使用 `window.location.href` 触发完整页面刷新，否则 `httpOnly` cookie 可能未正确设置，导致中间件验证失败而重定向回登录页。
 
 7. **退出登录跳转**: 退出登录后跳转到 `/login` 而非首页，以避免已登录用户访问首页时自动跳转回 `/admin` 的问题。
+
+## 开发日志
+
+### 2025-03-22
+- 项目初始化创建
+- MVP 功能开发完成（首页、管理后台、登录认证、卡片CRUD）
+- 部署到 Netlify 平台
+- 新增首页卡片类型筛选功能（全部/文字/视频/混合）
+- 新增纯文本卡片封面文字功能（艺术字样式，居中显示）
+  - 上传文件时自动使用文件名作为封面文字
+  - 手写文本时要求输入封面文字（最多10字）
+  - 使用 serif 字体家族实现艺术字效果
+- 新增混合卡片文本文件上传功能（支持 HTML/Markdown）
