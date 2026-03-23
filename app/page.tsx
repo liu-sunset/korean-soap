@@ -48,6 +48,7 @@ export default function HomePage() {
   }, []);
 
   const filteredCards = filter === 'all' ? cards : cards.filter(card => card.type === filter);
+  const currentOption = filterOptions.find(opt => opt.value === filter);
 
   return (
     <main className="min-h-screen bg-[#f9fafb]">
@@ -74,8 +75,8 @@ export default function HomePage() {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" className="gap-2">
-              {filterOptions.find(opt => opt.value === filter)?.icon}
-              <span>{filterOptions.find(opt => opt.value === filter)?.label}</span>
+              {currentOption?.icon}
+              <span>{currentOption?.label}</span>
               <ChevronDown className="w-4 h-4" />
             </Button>
           </DropdownMenuTrigger>
