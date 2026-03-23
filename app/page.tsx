@@ -56,11 +56,9 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-foreground">
-              治愈系韩剧剪辑与台词
+              heal-lines-soup
             </h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              精选韩剧片段，温暖你的心灵
-            </p>
+
           </div>
           <Link href="/admin">
             <Button variant="outline" size="sm">

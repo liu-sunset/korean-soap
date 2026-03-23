@@ -6,7 +6,7 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "治愈系韩剧剪辑与台词",
+  title: "heal-lines-soup",
   description: "A healing K-Drama clips & quotes wall",
 };
 
