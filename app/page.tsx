@@ -3,9 +3,15 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
-import { Plus, LayoutGrid, FileText, Video, Layers } from 'lucide-react';
+import { Plus, LayoutGrid, FileText, Video, Layers, ChevronDown } from 'lucide-react';
 import { CardItem } from '@/components/card-item';
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { CardItem as CardItemType } from '@/lib/types';
 
 type FilterType = 'all' | 'text' | 'video' | 'mixed';
@@ -65,22 +71,27 @@ export default function HomePage() {
       </header>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-        <div className="flex items-center gap-2 flex-wrap">
-          {filterOptions.map((option) => (
-            <button
-              key={option.value}
-              onClick={() => setFilter(option.value)}
-              className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
-                filter === option.value
-                  ? 'bg-primary text-primary-foreground shadow-sm'
-                  : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
-              }`}
-            >
-              {option.icon}
-              {option.label}
-            </button>
-          ))}
-        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" className="gap-2">
+              {filterOptions.find(opt => opt.value === filter)?.icon}
+              <span>{filterOptions.find(opt => opt.value === filter)?.label}</span>
+              <ChevronDown className="w-4 h-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start">
+            {filterOptions.map((option) => (
+              <DropdownMenuItem
+                key={option.value}
+                onClick={() => setFilter(option.value)}
+                className={filter === option.value ? 'bg-accent' : ''}
+              >
+                <span className="mr-2">{option.icon}</span>
+                <span>{option.label}</span>
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

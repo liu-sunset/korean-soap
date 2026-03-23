@@ -151,7 +151,7 @@ export function CardItem({ item }: CardItemProps) {
 
           <div className="overflow-y-auto pr-1 flex-1">
             {(item.type === 'video' || item.type === 'mixed') && item.bilibiliId && (
-              <div className="relative aspect-video bg-muted rounded-2xl overflow-hidden mb-4">
+              <div className="relative aspect-video bg-muted rounded-2xl overflow-hidden mb-4 shadow-lg">
                 <iframe
                   src={getBilibiliEmbedUrl(item.bilibiliId)}
                   className="absolute inset-0 w-full h-full"
@@ -164,7 +164,10 @@ export function CardItem({ item }: CardItemProps) {
             )}
 
             <div
-              className={item.htmlContent ? 'text-foreground pb-4' : 'prose prose-sm max-w-none text-foreground dark:prose-invert pb-4'}
+              className={item.htmlContent
+                ? 'text-foreground pb-4 leading-relaxed p-4 rounded-xl bg-muted/20'
+                : 'prose prose-sm max-w-none text-foreground dark:prose-invert pb-4 leading-relaxed'
+              }
               dangerouslySetInnerHTML={{
                 __html: htmlContent
               }}

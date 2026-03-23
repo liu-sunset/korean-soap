@@ -54,7 +54,7 @@ function ToastViewport() {
   const { toasts, dismiss } = useToast();
 
   return (
-    <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[100] flex flex-col gap-2 w-full max-w-md px-4">
+    <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[100] flex flex-col gap-2 w-full max-w-[90vw] sm:max-w-md px-3">
       {toasts.map((t) => (
         <ToastItem key={t.id} toast={t} onDismiss={dismiss} />
       ))}
@@ -78,7 +78,7 @@ function ToastItem({
 
   return (
     <div
-      className={`${typeStyles[toast.type]} px-4 py-3 rounded-xl shadow-lg animate-in slide-in-from-top-2 fade-in duration-300 flex items-center justify-between gap-3`}
+      className={`${typeStyles[toast.type]} px-4 py-3 rounded-2xl shadow-lg animate-in slide-in-from-top-2 fade-in duration-300 flex items-center justify-between gap-3`}
       role="alert"
     >
       <span className="text-sm font-medium">{toast.message}</span>
