@@ -6,52 +6,32 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 这是一个基于 Next.js 的治愈系韩剧剪辑与台词展示网站，采用瀑布流布局展示韩剧片段和台词。网站包含用户浏览页面和管理后台，使用 Netlify Blobs 作为数据存储。
 
-## 项目状态
+## 部署与存储
 
-| 状态 | 说明 |
-|------|------|
-| 阶段 | MVP（最小可行产品）已开发完成 |
-| 部署平台 | Netlify |
-| 数据存储 | Netlify Blobs (korea-soap-cards 存储桶) |
-
-## 已完成功能
-
-- [x] 首页瀑布流展示（响应式布局：1/2/3列）
-- [x] 首页卡片类型筛选（全部/文字/视频/混合）
-- [x] 卡片详情弹窗（支持 Markdown 和 HTML 渲染）
-- [x] Bilibili 视频嵌入播放
-- [x] 三种卡片类型支持：纯文字、视频、混合
-- [x] 管理后台登录认证（Cookie-based session）
-- [x] 卡片增删改查（CRUD）功能
-- [x] HTML/Markdown 文件上传
-- [x] 纯文本卡片封面文字（艺术字样式）
-- [x] 管理员路由保护（中间件）
-- [x] 退出登录功能
-
+| 项目 | 值 |
+|------|-----|
+| 部署平台 | Netlify (需 `@netlify/plugin-nextjs` 插件) |
+| 数据存储 | Netlify Blobs (`korea-soap-cards` 存储桶) |
+| 导出模式 | `standalone` (见 `next.config.ts`) |
+| 图片优化 | 关闭 (Netlify 自带图片处理) |
 
 ## 开发命令
 
 ```bash
-# 启动开发服务器
-npm run dev
-
-# 构建生产版本
-npm run build
-
-# 启动生产服务器
-npm start
-
-# 运行 lint 检查
-npm run lint
+npm run dev          # 启动开发服务器
+npm run build        # 构建生产版本
+npm start            # 启动生产服务器
+npm run lint         # 运行 lint 检查
+npx tsc --noEmit     # 运行类型检查
 ```
 
 ## 技术栈
 
-- **前端框架**: Next.js 16.1.6 (App Router)
-- **UI 库**: Radix UI 组件 (Dialog, Select)
-- **样式**: Tailwind CSS 4.1.18 + Framer Motion 动画
+- **前端框架**: Next.js 16 (App Router)
+- **UI 库**: Radix UI 组件 (Dialog, Select, DropdownMenu, AlertDialog, Slot)
+- **样式**: Tailwind CSS 4 + Framer Motion 动画 + tailwindcss-animate
 - **数据存储**: @netlify/blobs (无服务器存储)
-- **类型安全**: TypeScript 5.9.3
+- **工具库**: clsx + tailwind-merge (cn 函数), class-variance-authority
 - **图标**: Lucide React
 - **Markdown 解析**: marked
 
@@ -71,62 +51,65 @@ app/
 ├── page.tsx                   # 首页 - 瀑布流展示
 ├── login/page.tsx             # 登录页面
 ├── admin/page.tsx             # 管理后台
-└── layout.tsx                 # 根布局
+├── layout.tsx                 # 根布局
+├── providers.tsx              # Toast 上下文 Provider (客户端组件)
+└── globals.css                # 全局样式
 
 components/
 ├── ui/                        # Radix UI 组件封装
 │   ├── button.tsx
 │   ├── card.tsx
 │   ├── dialog.tsx
+│   ├── alert-dialog.tsx
+│   ├── dropdown-menu.tsx
 │   ├── input.tsx
 │   ├── select.tsx
 │   └── textarea.tsx
-└── card-item.tsx              # 卡片展示组件
+└── card-item.tsx              # 卡片展示组件 (视频嵌入、封面文字等)
+
+hooks/
+└── use-toast.tsx              # Toast 通知系统 (React Context)
 
 lib/
-├── blobs.ts                   # Netlify Blobs 数据操作
-├── types.ts                   # 类型定义
-├── utils.ts                   # 工具函数
-└── mock-data.ts               # Mock 数据（开发用）
+├── blobs.ts                   # Netlify Blobs 数据操作 (含 CardData 接口定义)
+├── types.ts                   # 类型定义 (CardType, CardItem 接口)
+├── utils.ts                   # cn() 工具函数
+└── mock-data.ts               # Mock 数据 (当 Blobs 不可用时的开发后备)
 
-middleware.ts                  # 中间件 - 管理员路由保护
+middleware.ts                  # 中间件 - 管理员路由保护和登录重定向
+next.config.ts                 # standlone 输出 + 禁用图片优化
 ```
+
+### 注意：类型重复
+
+`CardData` 接口在 `lib/blobs.ts` 中定义，`CardItem` 接口在 `lib/types.ts` 中定义。两者字段完全相同但名称不同。修改字段时需同步更新两处。
 
 ### 核心数据流
 
-1. **数据存储**: 所有卡片数据存储在 Netlify Blobs 的 `korea-soap-cards` 存储桶中，以 JSON 格式存储在 `cards` 键下
+1. **数据存储**: 所有卡片数据存储在 Netlify Blobs 的 `korea-soap-cards` 存储桶中，以 JSON 格式存储在 `cards` 键下。开发时若 Blobs 不可用，可改用 `mock-data.ts` 中的 mock 数据。
 
 2. **认证机制**:
-   - 使用简单的 Cookie-based session (`admin_session` cookie)
-   - 凭证硬编码在 `app/api/login/route.ts` 中 (生产环境应改为环境变量)
-   - 中间件 (`middleware.ts`) 保护 `/admin` 路由
+   - Cookie-based session (`admin_session` cookie)
+   - 凭证硬编码在 `app/api/login/route.ts` (默认 `admin/admin`)
+   - 中间件保护 `/admin` 路由，并将已登录用户从 `/login` 重定向到 `/admin`
+   - 中间件匹配模式: `['/admin/:path*', '/login']`
 
-3. **卡片类型**:
-   - `text`: 纯文字台词
+3. **卡片类型** (`CardType`):
+   - `text`: 纯文字台词（支持 HTML/Markdown 文件上传）
    - `video`: Bilibili 视频片段
    - `mixed`: 视频加文字组合
 
-4. **卡片数据结构** (`lib/types.ts`):
-   - `id`: 卡片唯一标识
-   - `type`: 卡片类型（`text` | `video` | `mixed`）
-   - `bilibiliId`: Bilibili 视频 BV 号（视频/混合类型）
-   - `summary`: 摘要/标题
-   - `content`: Markdown 格式的详细内容
-   - `htmlContent`: 上传的 HTML 文件内容（纯文本类型时使用）
-   - `coverText`: 封面显示文字（纯文本类型，最多10个字）
-   - `timestamp`: 创建时间戳
+4. **卡片排序**: 所有卡片列表按时间倒序排列（最新的在前）。
 
-5. **卡片排序**:
-   - 所有卡片列表都按时间倒序排列（最新的在前面）
-   - 首页和管理后台的 `loadCards` 函数中实现排序逻辑
+5. **登录/退出跳转**:
+   - 登录成功 → `window.location.href = '/admin'` 必须完整刷新（httpOnly cookie 需要）
+   - 退出登录 → 跳转 `/login`（不要跳首页，否则已登录用户访问首页会因中间件跳回 `/admin`）
 
-6. **登录跳转**:
-   - 登录成功后使用 `window.location.href = '/admin'` 进行完整页面刷新
-   - 这确保 `httpOnly` cookie 正确设置，中间件能正确验证认证状态
-
-7. **新增卡片优化**:
-   - 新增卡片时直接在本地状态顶部添加（`[newCard, ...cards]`），无需等待完整 API 响应
-   - 编辑卡片时仍需重新加载所有数据以确保一致性
+6. **Toast 通知系统** (`hooks/use-toast.tsx`):
+   - 基于 React Context 的全局通知组件
+   - 支持 4 种类型: success / error / warning / info
+   - 4 秒自动消失，固定定位在页面顶部居中，z-index 为 100
+   - 通过 `app/providers.tsx` 在根布局注入
 
 ### 模块间关系
 
@@ -141,18 +124,16 @@ middleware.ts                  # 中间件 - 管理员路由保护
     │   首页    │       │  管理后台 │       │  登录页   │
     │(page.tsx)│       │(admin/)   │       │ (login/) │
     └────┬─────┘       └────┬─────┘       └────┬─────┘
-         │                 │                   │
-         │                 │                   │
-         ▼                 ▼                   ▼
-    ┌─────────────────────────────────────────────────┐
-    │              /api/cards (GET)                  │
-    └─────────────────────────────────────────────────┘
-         │                 │                   │
-         ▼                 ▼                   ▼
-    ┌─────────────────────────────────────────────────┐
-    │              Netlify Blobs                     │
-    │         (korea-soap-cards 存储桶)               │
-    └─────────────────────────────────────────────────┘
+         │                   │                   │
+         ▼                   ▼                   ▼
+    /api/cards (GET)    /api/admin/cards       /api/login
+                        GET/POST/PATCH/DELETE  /api/logout
+                              │
+                              ▼
+                    ┌──────────────────┐
+                    │  Netlify Blobs   │
+                    │ (korea-soap-cards)│
+                    └──────────────────┘
 ```
 
 ### API 端点
@@ -168,58 +149,45 @@ middleware.ts                  # 中间件 - 管理员路由保护
 
 ## 环境变量
 
-需要配置 Netlify 相关的环境变量：
-- `NETLIFY_TOKEN` - Netlify API Token
-- `NETLIFY_SITE_ID` - Netlify 站点 ID
+```
+NETLIFY_TOKEN=your_netlify_token
+NETLIFY_SITE_ID=your_netlify_site_id
+```
 
-这些变量在 `lib/blobs.ts` 中用于初始化 Netlify Blobs 存储。
+在 `lib/blobs.ts` 中通过 `getStore({ name: 'korea-soap-cards' })` 初始化。
 
 ## Bilibili 视频嵌入
 
 ### 视频封面懒加载
-- **收起状态**：显示视频封面（从 B站 API 获取），鼠标悬停时显示播放按钮
-- **展开状态**：仅打开弹窗时才加载播放器并自动播放，避免首页直接加载所有 iframe
+- **收起状态**：显示视频封面（从 B站 API 获取），悬停时显示播放按钮
+- **展开状态**：仅在弹窗中加载播放器并自动播放
 
-### 视频播放器 URL
-嵌入 URL 格式（基础版本，不含 autoplay）：
+### 视频播放器 URL 格式
 ```
 https://player.bilibili.com/player.html?bvid={BV号}&page=1&high_quality=1&danmaku=1
 ```
+展开时添加 `&autoplay=1`。实现在 `components/card-item.tsx` 的 `getBilibiliEmbedUrl` 和 `getBilibiliCoverUrl` 函数中。
 
-展开时添加 `&autoplay=1` 参数启用自动播放。
+## HTML/Markdown 文件上传
 
-在 `components/card-item.tsx` 的 `getBilibiliEmbedUrl` 函数和 `getBilibiliCoverUrl` 函数中实现。
-
-## HTML 文件上传
-
-纯文本类型的卡片支持上传 HTML 或 Markdown 文件：
-- **HTML 文件**：内容存储到 `htmlContent` 字段，禁用文本输入框
-- **Markdown 文件**：内容存储到 `content` 字段，用户可继续编辑
-- 上传逻辑在 `app/admin/page.tsx` 的 `handleFileUpload` 函数中实现
+- **HTML 文件**: 内容存入 `htmlContent` 字段，禁用文本编辑
+- **Markdown 文件**: 内容存入 `content` 字段，可继续编辑
 - 展示时优先使用 `htmlContent`，否则用 `marked` 解析 `content`
-
-### 混合卡片文本上传
-- 混合类型卡片现在也支持上传 HTML 或 Markdown 文本文件
-- 混合卡片展示时：封面显示视频播放器，详情弹窗显示视频 + 文本内容
-
-### 封面文字规则
-- **上传文件时**：自动使用文件名（去除扩展名）作为封面文字
-- **手写文本时**：必须输入封面文字（最多10个字）
-- **封面展示**：使用艺术字体（serif）居中显示在纯文本卡片上
-- **向后兼容**：旧卡片没有 `coverText` 字段时，自动从 `htmlContent` 或 `summary` 提取
+- 混合类型卡片也支持上传文本文件：封面显示视频，弹窗显示视频 + 文本
+- 封面文字规则：上传文件时自动使用文件名（去除扩展名），手写文本时必须输入（最多10字），展示使用艺术字体（serif）
 
 ## 注意事项
 
-1. **认证安全性**: 当前使用硬编码的 admin 凭证和简单的 Cookie 验证，不适合生产环境。考虑使用 JWT 或更安全的认证机制。
+1. **类型同步**: `lib/blobs.ts` 的 `CardData` 和 `lib/types.ts` 的 `CardItem` 字段重复定义，修改字段时需同步更新两处。
 
-2. **httpOnly Cookie 操作**: 由于登录时设置的 `admin_session` cookie 使用了 `httpOnly: true`，客户端 JavaScript 无法直接删除。退出登录必须调用服务端 API (`POST /api/logout`)。
+2. **httpOnly Cookie**: 登录设置的 `admin_session` cookie 为 httpOnly，客户端 JS 无法操作。退出登录必须调用服务端 `POST /api/logout`。
 
-3. **数据持久化**: 本地开发时 Netlify Blobs 可能无法正常工作，需要配置正确的环境变量或考虑本地 mock 数据。
+3. **登录跳转**: 必须使用 `window.location.href` 触发完整页面刷新，否则 httpOnly cookie 设置失败会导致中间件拦截回登录页。
 
-4. **瀑布流布局**: 使用 Tailwind 的 `columns-1 sm:columns-2 lg:columns-3` 实现，确保使用 `break-inside-avoid` 防止卡片被分割。
+4. **瀑布流**: `columns-1 sm:columns-2 lg:columns-3` + `break-inside-avoid` 防止卡片被分截。
 
-5. **动画**: 所有页面过渡和动画使用 Framer Motion，注意 `AnimatePresence` 的 `mode` 属性设置。
+5. **动画**: 使用 Framer Motion，注意 `AnimatePresence` 的 `mode` 属性。
 
-6. **登录跳转注意事项**: 修改登录后的跳转逻辑时，必须使用 `window.location.href` 触发完整页面刷新，否则 `httpOnly` cookie 可能未正确设置，导致中间件验证失败而重定向回登录页。
+6. **z-index 层级**: Dialog (z-50), AlertDialog (z-50), Toast (z-[100]), DropdownMenu (需要高于 Dialog)。参考提交 `95d4afc` 修复的 z-index 冲突问题。
 
-7. **退出登录跳转**: 退出登录后跳转到 `/login` 而非首页，以避免已登录用户访问首页时自动跳转回 `/admin` 的问题。
+7. **Netlify 部署**: 需要 `@netlify/plugin-nextjs` 插件，配置为 `standalone` 输出模式，关闭 Next.js 自带图片优化。

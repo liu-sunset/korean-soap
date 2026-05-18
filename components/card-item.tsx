@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,55 +13,56 @@ import {
 } from '@/components/ui/dialog';
 import { Video, Play, FileText, Layers } from 'lucide-react';
 import { CardItem as CardItemType } from '@/lib/types';
-import { marked } from 'marked';
 
 interface CardItemProps {
   item: CardItemType;
 }
 
+const getBilibiliEmbedUrl = (bvid: string) =>
+  `https://player.bilibili.com/player.html?bvid=${bvid}&page=1&high_quality=1&danmaku=1`;
+
+const typeIconMap: Record<string, React.ReactNode> = {
+  video: <Video className="h-3 w-3" />,
+  mixed: <Layers className="h-3 w-3" />,
+  text: <FileText className="h-3 w-3" />,
+};
+
+const typeLabelMap: Record<string, string> = {
+  video: '视频',
+  mixed: '混合',
+  text: '文字',
+};
+
+function getDisplayCoverText(item: CardItemType) {
+  if (item.coverText) return item.coverText;
+  if (item.htmlContent) {
+    const titleMatch = item.htmlContent.match(/<h[1-6][^>]*>([^<]+)<\/h[1-6]>/i);
+    if (titleMatch) return titleMatch[1].trim();
+    const bodyText = item.htmlContent.replace(/<[^>]+>/g, '').trim();
+    return bodyText.slice(0, 10);
+  }
+  return item.summary.slice(0, 10);
+}
+
 export function CardItem({ item }: CardItemProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [htmlContent, setHtmlContent] = useState('');
+  const [isParsing, setIsParsing] = useState(false);
 
-  useEffect(() => {
-    if (isOpen) {
-      if (item.htmlContent) {
-        setHtmlContent(item.htmlContent);
-      } else {
-        Promise.resolve(marked.parse(item.content || item.summary)).then(setHtmlContent);
-      }
-    }
-  }, [isOpen, item]);
-
-  const getBilibiliEmbedUrl = (bvid: string) => {
-    return `https://player.bilibili.com/player.html?bvid=${bvid}&page=1&high_quality=1&danmaku=1`;
-  };
-
-  const getTypeIcon = (type: string) => {
-    switch (type) {
-      case 'video':
-        return <Video className="h-3 w-3" />;
-      case 'mixed':
-        return <Layers className="h-3 w-3" />;
-      default:
-        return <FileText className="h-3 w-3" />;
-    }
-  };
-
-  const getDisplayCoverText = () => {
-    if (item.coverText) {
-      return item.coverText;
-    }
+  const handleOpen = useCallback(async () => {
+    setIsOpen(true);
     if (item.htmlContent) {
-      const titleMatch = item.htmlContent.match(/<h[1-6][^>]*>([^<]+)<\/h[1-6]>/i);
-      if (titleMatch) {
-        return titleMatch[1].trim();
-      }
-      const bodyText = item.htmlContent.replace(/<[^>]+>/g, '').trim();
-      return bodyText.slice(0, 10);
+      setHtmlContent(item.htmlContent);
+      return;
     }
-    return item.summary.slice(0, 10);
-  };
+    setIsParsing(true);
+    const { marked } = await import('marked');
+    const parsed = await marked.parse(item.content || item.summary);
+    setHtmlContent(parsed);
+    setIsParsing(false);
+  }, [item]);
+
+  const displayCoverText = useMemo(() => getDisplayCoverText(item), [item]);
 
   return (
     <>
@@ -74,7 +75,7 @@ export function CardItem({ item }: CardItemProps) {
           {(item.type === 'video' || item.type === 'mixed') && item.bilibiliId && (
             <div
               className="relative aspect-video bg-muted group-hover:opacity-90 transition-opacity"
-              onClick={() => setIsOpen(true)}
+              onClick={handleOpen}
             >
               <iframe
                 src={getBilibiliEmbedUrl(item.bilibiliId)}
@@ -97,7 +98,7 @@ export function CardItem({ item }: CardItemProps) {
                   textShadow: '0 2px 4px rgba(0,0,0,0.05)',
                 }}
               >
-                {getDisplayCoverText()}
+                {displayCoverText}
               </h2>
             </div>
           )}
@@ -105,7 +106,7 @@ export function CardItem({ item }: CardItemProps) {
           <div className="p-5">
             <div className="flex items-center gap-2 mb-2">
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-secondary text-secondary-foreground">
-                {getTypeIcon(item.type)}
+                {typeIconMap[item.type]}
               </span>
               <span className="text-xs text-muted-foreground">
                 {new Date(item.timestamp).toLocaleDateString('zh-CN')}
@@ -119,7 +120,7 @@ export function CardItem({ item }: CardItemProps) {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => setIsOpen(true)}
+                onClick={handleOpen}
                 className="mt-3 h-8 px-3 text-xs"
               >
                 <Play className="h-3 w-3 mr-1" />
@@ -139,8 +140,8 @@ export function CardItem({ item }: CardItemProps) {
             <DialogDescription>
               <div className="flex items-center gap-2 mt-1">
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-secondary text-secondary-foreground">
-                  {getTypeIcon(item.type)}
-                  {item.type === 'video' ? '视频' : item.type === 'mixed' ? '混合' : '文字'}
+                  {typeIconMap[item.type]}
+                  {typeLabelMap[item.type]}
                 </span>
                 <span className="text-xs text-muted-foreground">
                   {new Date(item.timestamp).toLocaleString('zh-CN')}
@@ -163,15 +164,21 @@ export function CardItem({ item }: CardItemProps) {
               </div>
             )}
 
-            <div
-              className={item.htmlContent
-                ? 'text-foreground pb-4 leading-relaxed p-4 rounded-xl bg-muted/20'
-                : 'prose prose-sm max-w-none text-foreground dark:prose-invert pb-4 leading-relaxed'
-              }
-              dangerouslySetInnerHTML={{
-                __html: htmlContent
-              }}
-            />
+            {isParsing ? (
+              <div className="flex items-center justify-center py-16">
+                <p className="text-muted-foreground">加载内容中...</p>
+              </div>
+            ) : (
+              <div
+                className={item.htmlContent
+                  ? 'text-foreground pb-4 leading-relaxed p-4 rounded-xl bg-muted/20'
+                  : 'prose prose-sm max-w-none text-foreground dark:prose-invert pb-4 leading-relaxed'
+                }
+                dangerouslySetInnerHTML={{
+                  __html: htmlContent
+                }}
+              />
+            )}
           </div>
         </DialogContent>
       </Dialog>

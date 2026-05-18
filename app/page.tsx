@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { Plus, LayoutGrid, FileText, Video, Layers, ChevronDown } from 'lucide-react';
@@ -22,6 +22,8 @@ const filterOptions: { value: FilterType; label: string; icon: React.ReactNode }
   { value: 'video', label: '视频', icon: <Video className="w-4 h-4" /> },
   { value: 'mixed', label: '混合', icon: <Layers className="w-4 h-4" /> },
 ];
+
+const filterOptionMap = new Map(filterOptions.map(opt => [opt.value, opt]));
 
 export default function HomePage() {
   const [cards, setCards] = useState<CardItemType[]>([]);
@@ -47,8 +49,11 @@ export default function HomePage() {
     loadCards();
   }, []);
 
-  const filteredCards = filter === 'all' ? cards : cards.filter(card => card.type === filter);
-  const currentOption = filterOptions.find(opt => opt.value === filter);
+  const filteredCards = useMemo(
+    () => filter === 'all' ? cards : cards.filter(card => card.type === filter),
+    [cards, filter]
+  );
+  const currentOption = filterOptionMap.get(filter);
 
   return (
     <main className="min-h-screen bg-[#f9fafb]">

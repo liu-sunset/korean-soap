@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Edit, Trash2, Video, FileText, Layers, Upload } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
@@ -35,6 +35,20 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { CardItem as CardItemType } from '@/lib/types';
 
+const typeIconMap: Record<string, React.ReactNode> = {
+  video: <Video className="h-4 w-4" />,
+  mixed: <Layers className="h-4 w-4" />,
+  text: <FileText className="h-4 w-4" />,
+};
+
+const typeLabelMap: Record<string, string> = {
+  video: '视频',
+  mixed: '混合',
+  text: '文字',
+};
+
+const MAX_COVER_TEXT_LENGTH = 10;
+
 interface FormData {
   type: 'video' | 'text' | 'mixed';
   bilibiliId?: string;
@@ -63,8 +77,6 @@ export default function AdminPage() {
   const [deleteCardId, setDeleteCardId] = useState<string | null>(null);
   const { toast } = useToast();
 
-  const MAX_COVER_TEXT_LENGTH = 10;
-
   const loadCards = async () => {
     try {
       const response = await fetch('/api/cards');
@@ -84,16 +96,16 @@ export default function AdminPage() {
     loadCards();
   }, []);
 
-  const handleLogout = async () => {
+  const handleLogout = useCallback(async () => {
     try {
       await fetch('/api/logout', { method: 'POST' });
       window.location.href = '/login';
     } catch (error) {
       console.error('Logout failed:', error);
     }
-  };
+  }, []);
 
-  const handleCreate = () => {
+  const resetForm = useCallback(() => {
     setEditingCard(null);
     setFormData({ type: 'text', summary: '' });
     setSelectedFileName('');
@@ -104,10 +116,14 @@ export default function AdminPage() {
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
-    setIsDialogOpen(true);
-  };
+  }, []);
 
-  const handleEdit = (card: CardItemType) => {
+  const handleCreate = useCallback(() => {
+    resetForm();
+    setIsDialogOpen(true);
+  }, [resetForm]);
+
+  const handleEdit = useCallback((card: CardItemType) => {
     setEditingCard(card);
     setFormData({
       type: card.type,
@@ -126,7 +142,7 @@ export default function AdminPage() {
       fileInputRef.current.value = '';
     }
     setIsDialogOpen(true);
-  };
+  }, []);
 
   const extractCoverTextFromFileName = (fileName: string): string => {
     return fileName.replace(/\.(html|md)$/i, '');
@@ -272,52 +288,7 @@ export default function AdminPage() {
     }
   };
 
-  const getTypeIcon = (type: string) => {
-    switch (type) {
-      case 'video':
-        return <Video className="h-4 w-4" />;
-      case 'mixed':
-        return <Layers className="h-4 w-4" />;
-      default:
-        return <FileText className="h-4 w-4" />;
-    }
-  };
-
-  const getTypeLabel = (type: string) => {
-    switch (type) {
-      case 'video':
-        return '视频';
-      case 'mixed':
-        return '混合';
-      default:
-        return '文字';
-    }
-  };
-
   const remainingChars = MAX_COVER_TEXT_LENGTH - coverText.length;
-
-  if (isLoading) {
-    return (
-      <main className="min-h-screen bg-[#f9fafb]">
-        <header className="sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
-            <h1 className="text-2xl font-bold tracking-tight text-foreground">
-              管理后台
-            </h1>
-            <button
-              onClick={handleLogout}
-              className="text-sm text-muted-foreground hover:text-foreground"
-            >
-              退出登录
-            </button>
-          </div>
-        </header>
-        <div className="flex items-center justify-center min-h-[400px]">
-          <p className="text-muted-foreground">加载中...</p>
-        </div>
-      </main>
-    );
-  }
 
   return (
     <main className="min-h-screen bg-[#f9fafb]">
@@ -327,10 +298,12 @@ export default function AdminPage() {
             管理后台
           </h1>
           <div className="flex items-center gap-4">
-            <Button onClick={handleCreate}>
-              <Plus className="h-4 w-4 mr-2" />
-              新增卡片
-            </Button>
+            {!isLoading && (
+              <Button onClick={handleCreate}>
+                <Plus className="h-4 w-4 mr-2" />
+                新增卡片
+              </Button>
+            )}
             <button
               onClick={handleLogout}
               className="text-sm text-muted-foreground hover:text-foreground"
@@ -342,6 +315,11 @@ export default function AdminPage() {
       </header>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {isLoading ? (
+          <div className="flex items-center justify-center min-h-[400px]">
+            <p className="text-muted-foreground">加载中...</p>
+          </div>
+        ) : (
         <AnimatePresence mode="popLayout">
           {cards.length === 0 ? (
             <motion.div
@@ -378,8 +356,8 @@ export default function AdminPage() {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-2">
                             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-secondary text-secondary-foreground">
-                              {getTypeIcon(card.type)}
-                              {getTypeLabel(card.type)}
+                              {typeIconMap[card.type]}
+                              {typeLabelMap[card.type]}
                             </span>
                             <span className="text-xs text-muted-foreground">
                               {new Date(card.timestamp).toLocaleString('zh-CN')}
@@ -428,6 +406,7 @@ export default function AdminPage() {
             </motion.div>
           )}
         </AnimatePresence>
+        )}
       </div>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>

@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import { getStore } from '@netlify/blobs';
 
 export interface CardData {
@@ -19,7 +20,7 @@ async function getBlobStore() {
   });
 }
 
-export async function getAllCards(): Promise<CardData[]> {
+export const getAllCards = cache(async (): Promise<CardData[]> => {
   const store = await getBlobStore();
   try {
     const data = await store.get('cards', { type: 'json' }) as CardData[] | null;
@@ -28,7 +29,7 @@ export async function getAllCards(): Promise<CardData[]> {
     console.error('Failed to get cards:', error);
     return [];
   }
-}
+});
 
 export async function addCard(card: Omit<CardData, 'id' | 'timestamp'>): Promise<CardData> {
   const store = await getBlobStore();
